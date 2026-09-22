@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+ROOT="${PRIVACY_CENTER_HOME:-$HOME/privacy-center}"
+exec "$ROOT/.venv/bin/python" "$ROOT/privacy_center.py" "$@"

@@ -1,0 +1,7 @@
+[Unit]
+Description=Passive personal privacy footprint recheck
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/privacy-audit all
+UMask=0077

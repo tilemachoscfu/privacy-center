@@ -1,0 +1,10 @@
+[Unit]
+Description=Run passive privacy audit every 30 days
+
+[Timer]
+OnBootSec=15m
+OnUnitActiveSec=30d
+Persistent=true
+
+[Install]
+WantedBy=timers.target

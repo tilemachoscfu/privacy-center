@@ -1,0 +1,12 @@
+config/identity.yml
+config/dashboard.token
+PRIVACY_AUDIT.md
+results/
+data/accounts.csv
+data/data-brokers.csv
+sanitized/
+tools/
+.venv/
+*.log
+__pycache__/
+*.pyc
