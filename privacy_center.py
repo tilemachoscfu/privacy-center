@@ -245,9 +245,13 @@ def metadata_audit(target: Path) -> Path:
     outdir = secure_dir(RESULTS / "metadata" / dt.datetime.now().strftime("%Y%m%dT%H%M%S"))
     rows = []
     for path in files:
-        proc = run(["exiftool", "-j", "-G1", "-a", "-s", str(path)], timeout=120)
-        try: metadata = json.loads(proc.stdout)[0]
-        except Exception: metadata = {}
+        proc = run(["exiftool", "-j", "-G1", "-a", "-s", str(path)], timeout=120, check=True)
+        metadata = json.loads(proc.stdout)
+        if not isinstance(metadata, list) or len(metadata) != 1 or not isinstance(metadata[0], dict):
+            raise ValueError("Invalid ExifTool metadata response")
+        metadata = metadata[0]
+        if any(key.split(":")[-1] == "Error" for key in metadata):
+            raise ValueError("ExifTool could not inspect the file")
         risks = {k: v for k, v in metadata.items() if k.split(":")[-1] in SENSITIVE_TAGS or
                  any(word in k.lower() for word in ("gps", "serial", "author", "creator", "software"))}
         rows.append({"file": str(path), "risk_count": len(risks), "risks": risks})
