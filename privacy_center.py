@@ -268,7 +268,7 @@ def sanitize_metadata(target: Path) -> Path:
         output = destination / relative
         output.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, output)
-        run(["exiftool", "-overwrite_original", "-all=", str(output)], timeout=180)
+        run(["exiftool", "-overwrite_original", "-all=", str(output)], timeout=180, check=True)
         if output.suffix.lower() == ".pdf" and shutil.which("qpdf"):
             rewritten = output.with_suffix(".rewritten.pdf")
             if run(["qpdf", "--linearize", str(output), str(rewritten)], timeout=180).returncode == 0:

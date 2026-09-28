@@ -9,6 +9,22 @@ import privacy_center as pc
 
 
 class MetadataTests(unittest.TestCase):
+    def test_sanitizer_propagates_failure_and_preserves_original(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "sample.jpg"
+            source.write_bytes(b"original with metadata")
+            with patch.object(pc, "ROOT", root), patch.object(pc.shutil, "which", return_value="exiftool"), patch.object(pc, "metadata_audit") as audit, patch.object(pc, "run") as run:
+                def failed_command(command, **kwargs):
+                    if kwargs.get("check"):
+                        raise subprocess.CalledProcessError(1, command)
+                    return subprocess.CompletedProcess(command, 1)
+                run.side_effect = failed_command
+                with self.assertRaises(subprocess.CalledProcessError):
+                    pc.sanitize_metadata(source)
+                audit.assert_not_called()
+                self.assertEqual(source.read_bytes(), b"original with metadata")
+
     def test_failed_inspections_never_produce_clean_report(self):
         cases = ["invalid json", "[]", "[null]", '{}', '[{"ExifTool:Error":"unreadable"}]',
                  subprocess.CalledProcessError(1, "exiftool")]
