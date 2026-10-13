@@ -237,6 +237,8 @@ def iter_files(target: Path):
     elif target.is_dir():
         for path in target.rglob("*"):
             if path.is_file() and path.suffix.lower() in SUPPORTED: yield path
+    else:
+        raise ValueError("Metadata target must be an existing file or directory")
 
 
 def metadata_audit(target: Path) -> Path:
