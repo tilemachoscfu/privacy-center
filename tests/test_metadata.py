@@ -9,6 +9,25 @@ import privacy_center as pc
 
 
 class MetadataTests(unittest.TestCase):
+    def test_missing_targets_never_produce_clean_reports(self):
+        for operation in (pc.metadata_audit, pc.sanitize_metadata):
+            with self.subTest(operation=operation.__name__), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                with patch.object(pc, "ROOT", root), patch.object(pc, "RESULTS", root / "results"), \
+                        patch.object(pc.shutil, "which", return_value="exiftool"), \
+                        patch.object(pc, "run") as run:
+                    with self.assertRaisesRegex(ValueError, "existing file or directory"):
+                        operation(root / "missing.jpg")
+                    run.assert_not_called()
+                    self.assertFalse(list(root.rglob("report.json")))
+
+    def test_dangling_symlink_is_not_an_empty_audit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "dangling.jpg"
+            target.symlink_to(Path(directory) / "absent.jpg")
+            with self.assertRaises(ValueError):
+                list(pc.iter_files(target))
+
     def test_sanitizer_propagates_failure_and_preserves_original(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
