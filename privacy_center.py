@@ -80,7 +80,7 @@ def run(cmd: list[str], timeout: int = 300, check: bool = False,
 
 
 def username_audit(username: str) -> Path:
-    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", username):
+    if username.startswith("-") or not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", username):
         raise SystemExit("Invalid username characters")
     stamp = dt.datetime.now().strftime("%Y%m%dT%H%M%S")
     outdir = secure_dir(RESULTS / "usernames" / f"{username}-{stamp}")
