@@ -82,10 +82,13 @@ def run(cmd: list[str], timeout: int = 300, check: bool = False,
 def username_audit(username: str) -> Path:
     if username.startswith("-") or not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", username):
         raise SystemExit("Invalid username characters")
+    sherlock = ROOT / "tools" / "sherlock" / "bin" / "sherlock"
+    maigret = ROOT / "tools" / "maigret" / "bin" / "maigret"
+    if not sherlock.exists() and not maigret.exists():
+        raise SystemExit("Username audit unavailable: install Sherlock or Maigret first")
     stamp = dt.datetime.now().strftime("%Y%m%dT%H%M%S")
     outdir = secure_dir(RESULTS / "usernames" / f"{username}-{stamp}")
     rows: list[dict] = []
-    sherlock = ROOT / "tools" / "sherlock" / "bin" / "sherlock"
     if sherlock.exists():
         # Sherlock 0.16 writes CSV output as <username>.csv in its working directory.
         raw = outdir / f"{username}.csv"
@@ -100,7 +103,6 @@ def username_audit(username: str) -> Path:
                     rows.append({"platform": item.get("name") or item.get("site_name") or "unknown",
                                  "URL": url, "status": status, "username": username,
                                  "confidence": "medium (automated HTTP heuristic)"})
-    maigret = ROOT / "tools" / "maigret" / "bin" / "maigret"
     if maigret.exists():
         raw_json = outdir / "maigret.json"
         proc = run([str(maigret), username, "--json", "simple", "--folderoutput", str(outdir),

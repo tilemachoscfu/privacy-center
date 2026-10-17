@@ -8,6 +8,28 @@ import privacy_center as pc
 
 
 class UsernameTests(unittest.TestCase):
+    def test_missing_tools_fail_without_creating_a_success_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(pc, "ROOT", root), patch.object(pc, "RESULTS", root / "results"), \
+                    patch.object(pc, "run") as run:
+                with self.assertRaisesRegex(SystemExit, "install Sherlock or Maigret"):
+                    pc.username_audit("example")
+                run.assert_not_called()
+                self.assertFalse((root / "results").exists())
+
+    def test_maigret_only_installation_is_supported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tool = root / "tools/maigret/bin/maigret"
+            tool.parent.mkdir(parents=True)
+            tool.touch()
+            with patch.object(pc, "ROOT", root), patch.object(pc, "RESULTS", root / "results"), \
+                    patch.object(pc, "run", return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
+                output = pc.username_audit("example")
+                self.assertEqual(run.call_args.args[0][0], str(tool))
+                self.assertTrue((output / "run.json").is_file())
+
     def test_option_like_names_rejected_before_any_side_effects(self):
         for name in ("-", "--help", "--version", "-user", "--output", "", "a/b", "x" * 81):
             with self.subTest(name=name), patch.object(pc, "secure_dir") as mkdir, \
