@@ -284,6 +284,8 @@ ACCOUNT_PATTERNS = re.compile(r"welcome|verify|verification|account (created|cre
 
 def email_export_audit(target: Path) -> Path:
     source = target.expanduser().resolve(); rows = []
+    if not source.is_dir() and not (source.is_file() and source.suffix.lower() == ".mbox"):
+        raise SystemExit("Email export must be an existing .mbox file or directory of .eml files")
     messages = mailbox.mbox(source) if source.is_file() and source.suffix.lower() == ".mbox" else None
     iterable = messages if messages is not None else (email.message_from_binary_file(p.open("rb"), policy=policy.default)
                for p in source.rglob("*.eml") if p.is_file())
