@@ -8,6 +8,31 @@ import privacy_center as pc
 
 
 class EmailExportTests(unittest.TestCase):
+    def test_mailbox_closes_when_iteration_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / 'test.mbox'
+            source.touch()
+            with patch.object(pc.mailbox, 'mbox') as factory:
+                factory.return_value.__iter__.side_effect = ValueError('synthetic parse failure')
+                with self.assertRaises(ValueError):
+                    pc.email_export_audit(source)
+                factory.assert_called_once_with(source, create=False)
+                factory.return_value.close.assert_called_once()
+
+    def test_eml_stream_closes_when_parser_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp)
+            (source / 'test.eml').touch()
+            streams = []
+            def fail(stream, **kwargs):
+                streams.append(stream)
+                raise ValueError('synthetic parse failure')
+            with patch.object(pc.email, 'message_from_binary_file', side_effect=fail):
+                with self.assertRaises(ValueError):
+                    pc.email_export_audit(source)
+            self.assertEqual(len(streams), 1)
+            self.assertTrue(streams[0].closed)
+
     def test_invalid_sources_fail_without_reports(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
