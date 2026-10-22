@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import contextlib
 import datetime as dt
 import email
 import hashlib
@@ -286,14 +287,21 @@ def email_export_audit(target: Path) -> Path:
     source = target.expanduser().resolve(); rows = []
     if not source.is_dir() and not (source.is_file() and source.suffix.lower() == ".mbox"):
         raise SystemExit("Email export must be an existing .mbox file or directory of .eml files")
-    messages = mailbox.mbox(source) if source.is_file() and source.suffix.lower() == ".mbox" else None
-    iterable = messages if messages is not None else (email.message_from_binary_file(p.open("rb"), policy=policy.default)
-               for p in source.rglob("*.eml") if p.is_file())
-    for msg in iterable:
-        subject = str(msg.get("subject", "")); sender = str(msg.get("from", "")); date = str(msg.get("date", ""))
-        if ACCOUNT_PATTERNS.search(subject):
-            rows.append({"service_guess": sender, "subject": subject, "date": date,
-                         "category": ACCOUNT_PATTERNS.search(subject).group(0)})
+    def eml_messages():
+        for path in source.rglob("*.eml"):
+            if path.is_file():
+                with path.open("rb") as stream:
+                    message = email.message_from_binary_file(stream, policy=policy.default)
+                yield message
+
+    with contextlib.ExitStack() as stack:
+        iterable = (stack.enter_context(contextlib.closing(mailbox.mbox(source, create=False)))
+                    if source.is_file() else eml_messages())
+        for msg in iterable:
+            subject = str(msg.get("subject", "")); sender = str(msg.get("from", "")); date = str(msg.get("date", ""))
+            if ACCOUNT_PATTERNS.search(subject):
+                rows.append({"service_guess": sender, "subject": subject, "date": date,
+                             "category": ACCOUNT_PATTERNS.search(subject).group(0)})
     outdir = secure_dir(RESULTS / "email-exports" / dt.datetime.now().strftime("%Y%m%dT%H%M%S"))
     write_csv(outdir / "account-candidates.csv", rows, ["service_guess", "subject", "date", "category"])
     return outdir
