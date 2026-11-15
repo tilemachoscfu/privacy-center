@@ -155,7 +155,7 @@ def email_audit(address: str) -> Path:
     gravatar_status = http_status(gravatar_url)
     report = {
         "checked_at": now(), "email_sha256": hashlib.sha256(address.lower().encode()).hexdigest(),
-        "gravatar": {"exposed": gravatar_status == 200, "status": gravatar_status,
+        "gravatar": {"exposed": {200: True, 404: False}.get(gravatar_status), "status": gravatar_status,
                      "url": gravatar_url if gravatar_status == 200 else None},
         "search_queries_for_manual_review": [
             f'"{address}"', f'"{address}" site:github.com', f'"{address}" site:gitlab.com',
