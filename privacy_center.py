@@ -186,6 +186,8 @@ def email_audit(address: str) -> Path:
                 for b in breaches]}
         except urllib.error.HTTPError as exc:
             report["hibp"]["status"] = "no_breach" if exc.code == 404 else f"http_{exc.code}"
+        except (urllib.error.URLError, OSError):
+            report["hibp"]["status"] = "network_error"
     else:
         report["hibp"]["status"] = "skipped: set HIBP_API_KEY only in the process environment"
     write_json(outdir / "report.json", report)
